@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require("express");
 const app = express();
 const port = 3000;
+const bcrypt=require('bcrypt');
+const saltRounds=10;
 
 const ejs = require("ejs");
 app.set("view engine", "ejs");
@@ -28,16 +30,18 @@ userSchema.plugin(encrypt,{secret:process.env.SECRET, encryptedFields:['password
 const User = new mongoose.model("User", userSchema);
 
 /*using md5 hashing to hash our password*/
-const md5=require('md5');
+// const md5=require('md5');
 
 app.post("/register", (req, res) => {
   let data = req.body;
   let newEmail = data.userEmail;
   let newPwd = data.password;
-  //creating a User
+
+  bcrypt.hash(newPwd,saltRounds,(err,hash)=>{
+      //creating a User
   User.create({
     email: newEmail,
-    password: md5(newPwd),
+    password: hash,
   })
     .then((result) => {
       res.render("secrets");
@@ -46,18 +50,23 @@ app.post("/register", (req, res) => {
       console.log("Error in creating a New User " + err);
       res.send("<h1>Error in creating a New User</h1>");
     });
+  });
+  
 });
 
 app.post("/login", (req, res) => {
   let data = req.body;
   let newEmail = data.userEmail;
-  let newPwd = md5(data.password);
+  let newPwd = data.password;
 
   //finding the accound with the entered details
-  User.findOne({email:newEmail,password:newPwd})
+  User.findOne({email:newEmail})
         .then(result=>{
-            console.log(result);
-            res.render("secrets");
+            bcrypt.compare(newPwd,result.password)
+                  .then(result=>{
+                     res.render("secrets");
+                  })
+                  .catch(err=>console.log("Error in bcrypt compare= "+err));
         })
         .catch(err=>res.send(err));
 });
