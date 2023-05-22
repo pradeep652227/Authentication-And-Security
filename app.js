@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require("express");
 const app = express();
 const port = 3000;
@@ -20,10 +22,13 @@ const userSchema = new mongoose.Schema({
 /*encrypting  our database using mongoose-encryption*/
 const encrypt=require('mongoose-encryption');
 
-let secretString="ThisisourLongSecretstring.";
-userSchema.plugin(encrypt,{secret:secretString});
+
+userSchema.plugin(encrypt,{secret:process.env.SECRET, encryptedFields:['password']});
 
 const User = new mongoose.model("User", userSchema);
+
+/*using md5 hashing to hash our password*/
+const md5=require('md5');
 
 app.post("/register", (req, res) => {
   let data = req.body;
@@ -32,10 +37,10 @@ app.post("/register", (req, res) => {
   //creating a User
   User.create({
     email: newEmail,
-    password: newPwd,
+    password: md5(newPwd),
   })
     .then((result) => {
-      res.send("<h1>Successfully Created a New User!!</h1>");
+      res.render("secrets");
     })
     .catch((err) => {
       console.log("Error in creating a New User " + err);
@@ -46,17 +51,20 @@ app.post("/register", (req, res) => {
 app.post("/login", (req, res) => {
   let data = req.body;
   let newEmail = data.userEmail;
-  let newPwd = data.password;
+  let newPwd = md5(data.password);
 
   //finding the accound with the entered details
   User.findOne({email:newEmail,password:newPwd})
         .then(result=>{
             console.log(result);
-            res.send("This is the result after finding the account= "+result);
+            res.render("secrets");
         })
         .catch(err=>res.send(err));
 });
 
+app.get("/logout",(req,res)=>{
+  res.render("home");
+})
 app.get("/register", (req, res) => {
   res.render("register");
 });
