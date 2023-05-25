@@ -46,6 +46,7 @@ const userSchema = new mongoose.Schema({
   username: { type: String},
   password: { type: String },
   googleID: String,
+  secrets:[String]
 });
 
 userSchema.plugin(passportLocalMongoose); //it'll simplify the integration between mongoose and passport for local authentication
@@ -80,8 +81,8 @@ passport.use(
       userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
     },
     function (accessToken, refreshToken, profile, cb) {
-      console.log(profile);
-      console.log("cb= "+cb);
+      // console.log(profile);
+      // console.log("cb= "+cb);
       // User.findOrCreate({googleID:profile.id},(err,user)=>{
       //     return cb(err,user);
       // });
@@ -116,14 +117,48 @@ app.get("/auth/google/secrets",passport.authenticate("google", { failureRedirect
     }
 );
 
+
 app.get("/secrets", (req, res) => {
-  if (req.isAuthenticated()) res.render("secrets");
+  if (req.isAuthenticated()){
+    // console.log("User from req= "+req.user);
+    User.find({"secret":{$ne:[]}})
+        .then(users=>{
+          res.render("secrets",{usersWithSecret:users});
+        })
+        .catch(err=>{console.log("Error in finding the users having non-null secrets, err= "+err);res.redirect("/login");})
+  } 
   else {
     console.log("User is deauthenticated");
     res.redirect("/login");
   }
 });
 
+//submiting new secrets
+let newUser;
+app.route("/submit")
+.get((req,res)=>{
+  if(req.isAuthenticated()){
+    newUser=req.user;//for post /submit to work in case of OAuth where req object is undefined
+    res.render("submit");
+  }else{
+    console.log("User is not authenticated in /submit get route");
+    res.redirect("/login");
+  }
+})
+
+.post((req,res)=>{
+  let newSecret=req.body.secret;
+  if(newUser!=undefined){
+    newUser.secrets.push(newSecret);
+    newUser.save();
+    newUser=undefined;
+    res.redirect("/secrets");
+  }else{
+    res.redirect("/submit");
+  }
+});
+
+//login and register routes
 app.post("/register", (req, res) => {
   let data = req.body;
   let newEmail = data.username;
@@ -203,9 +238,6 @@ app.get("/login", (req, res) => {
   res.render("login");
 });
 
-app.get("/secrets", (req, res) => {
-  res.render("secrets");
-});
 app.get("/", (req, res) => {
   res.render("home");
 });
