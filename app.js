@@ -33,7 +33,7 @@ app.use(passport.session()); //if ur application uses persistent login session, 
 //require mongoose
 const mongoose = require("mongoose");
 async function main() {
-  await mongoose.connect("mongodb://127.0.0.1:27017/usersDB");
+  await mongoose.connect(String(process.env.CONNECTION_URL));
 }
 
 main().catch((err) =>
@@ -77,8 +77,7 @@ passport.use(
     {
       clientID: process.env.CLIENT_ID,
       clientSecret: process.env.CLIENT_SECRET,
-      callbackURL: "http://localhost:3000/auth/google/secrets",
-      userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
+      callbackURL: process.env.CALLBACK_URL,
     },
     function (accessToken, refreshToken, profile, cb) {
       // console.log(profile);
@@ -244,3 +243,5 @@ app.get("/", (req, res) => {
 app.listen(process.env.PORT || port, () => {
   console.log("server is up and running");
 });
+
+module.exports=app;
