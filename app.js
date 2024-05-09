@@ -4,7 +4,8 @@ const express = require("express");
 const app = express();
 const port = 3000;
 //Setting up the authentication to our web application using passport
-const session = require("express-session");
+// const session = require("express-session");
+const session = require("cookie-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
